@@ -1,5 +1,6 @@
 import argparse
 import logging
+import time
 
 takeout_base_folder = None
 files_to_process = []
@@ -47,9 +48,11 @@ def scan_directory(dir_to_scan):
 def main():
     analyse_arguments()
 
+    start = time.monotonic()
     print(f'Scanning folder {takeout_base_folder}...')
     scan_directory(takeout_base_folder)
-    print(f'Found {len(files_to_process)} json files and {len(image_files)} image files')
+    end = time.monotonic()
+    print(f'Found {len(files_to_process)} json files and {len(image_files)} image files in {end - start:.{2}} seconds')
 
 
 if __name__ == "__main__":
