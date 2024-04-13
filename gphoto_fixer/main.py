@@ -79,16 +79,31 @@ def get_patched_json(json: str) -> str:
 
         return letter_json
 
-    def patch_missing_extension(double_json: str):
+    def patch_missing_extension_jpg(double_json: str):
         if not double_json.endswith('.'):
             return double_json
 
         double_json = double_json + 'jpg'
         return double_json
 
+    def patch_missing_extension_mp4(double_json: str):
+        if not double_json.endswith('.m'):
+            return double_json
+
+        double_json = double_json + 'p4'
+        return double_json
+
+    def patch_missing_bracket(bracket_json: str) -> str:
+        if bracket_json.rstrip('0123456789').endswith("("):
+            return bracket_json + ')'
+
+        return bracket_json
+
     json = patch_numbering(json)
     json = patch_missing_letter(json)
-    json = patch_missing_extension(json)
+    json = patch_missing_extension_jpg(json)
+    json = patch_missing_bracket(json)
+    json = patch_missing_extension_mp4(json)
     return json
 
 
@@ -100,17 +115,20 @@ def match_files():
             # found an exact wanted match - this json file can be ignored
             continue
 
+        found_num = 0
         patched_json = get_patched_json(without_ext)
         if patched_json != without_ext:
-            if patched_json in image_files:
-                # patched numbering in file - (1) etc.
-                files_to_rename.append(patched_json)
+            found = list(filter(lambda _: _.startswith(patched_json), image_files))
+            found_num = len(found)
+            if found_num == 1:
+                # TODO: Add .json in correct case
+                files_to_rename.append((json, found[0]))
 
                 if is_verbose:
                     print(f'Fixing numbering in json file {json} -> {without_ext}')
                 continue
 
-        print(f"media file cannot be found: {json} ({without_ext})")
+        print(f"media file cannot be found ({found_num}): {json} ({without_ext})")
 
 
 def main():
@@ -127,6 +145,8 @@ def main():
     match_files()
     end = time.monotonic()
     print(f'Matching files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
+
+
 
 
 if __name__ == "__main__":

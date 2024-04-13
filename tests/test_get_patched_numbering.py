@@ -6,6 +6,8 @@ from gphoto_fixer.main import get_patched_json
 class TestPatchedNumbering(TestCase):
     def test_get_patched_json(self):
         data = {
+            ('Screenshot_20240116_101115_Samsung Internet (1', 'Screenshot_20240116_101115_Samsung Internet (1)'),
+            ('Screen_Recording_20240209_151354_One UI Home.m', 'Screen_Recording_20240209_151354_One UI Home.mp4'),
             (
                 'Screenshot_20210112-093232_eBay Kleinanzeigen.',
                 'Screenshot_20210112-093232_eBay Kleinanzeigen.jpg'),
