@@ -2,6 +2,8 @@ import argparse
 import logging
 import time
 
+is_verbose = False
+
 takeout_base_folder = None
 files_to_process = []
 image_files = []
@@ -12,6 +14,7 @@ def analyse_arguments():
     global takeout_base_folder
     parser = argparse.ArgumentParser(exit_on_error=False)
     parser.add_argument('-t', '--takeout', help="Specify the folder where your google takeout images are stored.")
+    parser.add_argument('-v', '--verbose', help="Print verbose logging", action='store_true')
 
     try:
         args = parser.parse_args()
@@ -19,9 +22,10 @@ def analyse_arguments():
             print('Some error occurred. Aborting.')
 
         takeout_base_folder = args.takeout
+        is_verbose = args.verbose
 
     except argparse.ArgumentError as e:
-        print('Some error occurred. Aborting.')
+        print(f'Some error occurred: {e}. Aborting.')
         exit(-1)
 
     print(f"Will work in folder {takeout_base_folder}")
@@ -47,24 +51,45 @@ def scan_directory(dir_to_scan):
 
 
 def get_patched_json(json: str) -> str:
-    if not json.endswith(')'):
-        return json
+    def patch_numbering(numbering_json: str) -> str:
+        if not numbering_json.endswith(')'):
+            return numbering_json
 
-    index = json.rfind('(')
-    if index == -1:
-        return json
+        index = numbering_json.rfind('(')
+        if index == -1:
+            return numbering_json
 
-    length = len(json) - index
-    number = json[index:]
-    patched = json[:-length]
+        length = len(numbering_json) - index
+        number = numbering_json[index:]
+        patched = numbering_json[:-length]
 
-    extension_index = patched.rfind(".")
-    if extension_index == -1:
-        return json
+        extension_index = patched.rfind(".")
+        if extension_index == -1:
+            return numbering_json
 
-    extension = patched[extension_index: ]
-    patched = f'{patched[:extension_index]}{number}{extension}'
-    return patched
+        extension = patched[extension_index:]
+        patched = f'{patched[:extension_index]}{number}{extension}'
+        return patched
+
+    def patch_missing_letter(letter_json: str) -> str:
+        if letter_json.endswith('.jp'):
+            letter_json += 'g'
+        elif letter_json.endswith('.JP'):
+            letter_json += 'G'
+
+        return letter_json
+
+    def patch_missing_extension(double_json: str):
+        if not double_json.endswith('.'):
+            return double_json
+
+        double_json = double_json + 'jpg'
+        return double_json
+
+    json = patch_numbering(json)
+    json = patch_missing_letter(json)
+    json = patch_missing_extension(json)
+    return json
 
 
 def match_files():
@@ -80,10 +105,12 @@ def match_files():
             if patched_json in image_files:
                 # patched numbering in file - (1) etc.
                 files_to_rename.append(patched_json)
-                print(f'Fixing numbering in json file {json} -> {without_ext}')
+
+                if is_verbose:
+                    print(f'Fixing numbering in json file {json} -> {without_ext}')
                 continue
 
-        print(f"media file cannot be found: {json}")
+        print(f"media file cannot be found: {json} ({without_ext})")
 
 
 def main():
