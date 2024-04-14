@@ -1,8 +1,11 @@
 import argparse
 import logging
+import os
+import pprint
 import time
 
 is_verbose = False
+shall_rename_json = False
 
 takeout_base_folder = None
 files_to_process = []
@@ -12,9 +15,14 @@ files_to_rename = []
 
 def analyse_arguments():
     global takeout_base_folder
+    global is_verbose
+    global shall_rename_json
+
     parser = argparse.ArgumentParser(exit_on_error=False)
     parser.add_argument('-t', '--takeout', help="Specify the folder where your google takeout images are stored.")
     parser.add_argument('-v', '--verbose', help="Print verbose logging", action='store_true')
+    parser.add_argument('-r', '--rename-json', help="Rename the json files automatically to match the media file.",
+                        action='store_true')
 
     try:
         args = parser.parse_args()
@@ -23,6 +31,7 @@ def analyse_arguments():
 
         takeout_base_folder = args.takeout
         is_verbose = args.verbose
+        shall_rename_json = args.rename_json
 
     except argparse.ArgumentError as e:
         print(f'Some error occurred: {e}. Aborting.')
@@ -48,6 +57,17 @@ def scan_directory(dir_to_scan):
 
             elif entry.is_dir():
                 scan_directory(entry)
+
+
+def rename_json_files():
+    for src, target, _ in files_to_rename:
+        try:
+            if is_verbose:
+                print(f'Rename \n{src} to \n{target}')
+
+            os.rename(src, target)
+        except Exception as _:
+            print(f'Error renaming file from \n{src} to \n{target}: \n{str(_)}')
 
 
 def get_patched_json(json: str) -> str:
@@ -121,11 +141,9 @@ def match_files():
             found = list(filter(lambda _: _.startswith(patched_json), image_files))
             found_num = len(found)
             if found_num == 1:
-                # TODO: Add .json in correct case
-                files_to_rename.append((json, found[0]))
-
-                if is_verbose:
-                    print(f'Fixing numbering in json file {json} -> {without_ext}')
+                media_file = found[0]
+                corrected_file = f'{media_file}.json'
+                files_to_rename.append((json, corrected_file, media_file))
                 continue
 
         print(f"media file cannot be found ({found_num}): {json} ({without_ext})")
@@ -146,7 +164,17 @@ def main():
     end = time.monotonic()
     print(f'Matching files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
 
+    if is_verbose:
+        print('These files will be renamed:')
+        for src, target, media in files_to_rename:
+            print(f'\nfrom <{src}>\nto   <{target}>\nfor  <{media}>')
 
+    if shall_rename_json:
+        start = time.monotonic()
+        print('Renaming files now...')
+        rename_json_files()
+        end = time.monotonic()
+        print(f'renaming files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
 
 
 if __name__ == "__main__":
