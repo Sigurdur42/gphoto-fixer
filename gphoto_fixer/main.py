@@ -164,17 +164,20 @@ def main():
     end = time.monotonic()
     print(f'Matching files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
 
-    if is_verbose:
+    if is_verbose and len(files_to_rename) > 0:
         print('These files will be renamed:')
         for src, target, media in files_to_rename:
             print(f'\nfrom <{src}>\nto   <{target}>\nfor  <{media}>')
 
     if shall_rename_json:
-        start = time.monotonic()
-        print('Renaming files now...')
-        rename_json_files()
-        end = time.monotonic()
-        print(f'renaming files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
+        if len(files_to_rename) == 0:
+            print('Great! All files are properly named.')
+        else:
+            start = time.monotonic()
+            print('Renaming files now...')
+            rename_json_files()
+            end = time.monotonic()
+            print(f'renaming files took {end - start:.{2}} seconds (files to rename: {len(files_to_rename)})')
 
 
 if __name__ == "__main__":
